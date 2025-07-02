@@ -1,14 +1,28 @@
 import yfinance as yf
+import pandas as pd
 from textblob import TextBlob
+from sklearn.linear_model import LinearRegression
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 
 def get_stock_data(symbol):
-    data = yf.download(tickers=symbol, period='1d', interval='5m')
-    data['SMA_20'] = data['Close'].rolling(window=20).mean()
-    data['EMA_10'] = data['Close'].ewm(span=10, adjust=False).mean()
-    return data
+    try:
+        df = yf.download(tickers=symbol, period='10d', interval='1d')
+        df['SMA_20'] = df['Close'].rolling(window=3).mean()
+        df['EMA_10'] = df['Close'].ewm(span=3, adjust=False).mean()
+        return df
+    except:
+        return pd.DataFrame()
+
+def predict_price(df):
+    df = df.dropna()
+    if len(df) < 5: return 0.0
+    df = df.reset_index()
+    df['Day'] = range(len(df))
+    X = df[['Day']]
+    y = df['Close']
+    model = LinearRegression().fit(X, y)
+    return model.predict([[len(df)]])[0]
 
 def fetch_moneycontrol_news(company):
     query = company.replace(" ", "-").lower()
@@ -26,11 +40,12 @@ def fetch_economic_times_news(company):
     return [h.get_text().strip() for h in headlines[:5]]
 
 def fetch_latest_news(company):
-    news_mc = fetch_moneycontrol_news(company)
-    news_et = fetch_economic_times_news(company)
-    return news_mc + news_et
+    try:
+        return fetch_moneycontrol_news(company) + fetch_economic_times_news(company)
+    except:
+        return []
 
 def analyze_sentiment(news_list):
-    all_text = " ".join(news_list)
-    sentiment = TextBlob(all_text).sentiment.polarity
-    return "Positive" if sentiment > 0 else "Negative"
+    text = " ".join(news_list)
+    score = TextBlob(text).sentiment.polarity
+    return "Positive" if score > 0 else "Negative"
