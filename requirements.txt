@@ -1,0 +1,8 @@
+streamlit
+yfinance
+textblob
+pandas
+scikit-learn
+beautifulsoup4
+requests
+lxml
