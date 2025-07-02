@@ -3,51 +3,41 @@ import pandas as pd
 from utils import get_stock_data, fetch_latest_news, analyze_sentiment
 import time
 
-st.set_page_config(page_title="📊 Indian Stock Predictor", layout="wide", page_icon="📈")
-st.title("📊 Indian Stock Trend Predictor (NSE/BSE)")
+st.set_page_config(page_title="📈 Indian Stock Predictor", layout="wide")
+st.title("📊 Indian Stock Trend Predictor (NSE + BSE)")
 
-# Stock list with NSE and BSE codes
+exchange = st.radio("Choose Exchange", ["NSE", "BSE"])
 stock_list = {
-    "RELIANCE (NSE)": "RELIANCE.NS",
-    "RELIANCE (BSE)": "500325.BO",
-    "TCS (NSE)": "TCS.NS",
-    "TCS (BSE)": "532540.BO",
-    "INFY (NSE)": "INFY.NS",
-    "INFY (BSE)": "500209.BO",
-    "HDFCBANK (NSE)": "HDFCBANK.NS",
-    "HDFCBANK (BSE)": "500180.BO",
-    "ICICIBANK (NSE)": "ICICIBANK.NS",
-    "ICICIBANK (BSE)": "532174.BO"
+    "RELIANCE": "RELIANCE.NS",
+    "INFY": "INFY.NS",
+    "TCS": "TCS.NS",
+    "HDFCBANK": "HDFCBANK.NS",
+    "ICICIBANK": "ICICIBANK.NS"
 }
+
+if exchange == "BSE":
+    stock_list = {k: v.replace(".NS", ".BO") for k, v in stock_list.items()}
 
 stock = st.selectbox("Select a Stock", list(stock_list.keys()))
 symbol = stock_list[stock]
 
-# Auto-refresh every 10 minutes
-st_autorefresh = st.experimental_rerun
-refresh_interval = 600  # seconds
+data_load_state = st.text("Fetching stock data...")
+data = get_stock_data(symbol)
+data_load_state.text("")
 
-# Get stock data
-df = get_stock_data(symbol)
-st.subheader("📉 Raw data preview:")
-st.dataframe(df.tail(10))
+st.subheader("Raw data preview:")
+st.dataframe(data.tail(10))
 
-# Chart
-st.line_chart(df['Close'])
-
-# News & Sentiment
-st.subheader("📰 Latest News & Sentiment")
-news = fetch_latest_news(stock.split()[0])
+st.subheader("Sentiment Analysis (Last 5 News Headlines)")
+news = fetch_latest_news(stock)
+sentiment = analyze_sentiment(news)
+st.write(f"📰 News Sentiment: **{sentiment}**")
+st.write("Recent Headlines:")
 for n in news:
     st.markdown(f"- {n}")
 
-sentiment = analyze_sentiment(news)
-st.markdown(f"**🧠 Sentiment Analysis**: `{sentiment}`")
+st.subheader("📈 Stock Close Price with SMA and EMA")
+st.line_chart(data[['Close', 'SMA_20', 'EMA_10']])
 
-# Simple prediction based on sentiment
-prediction = "📈 Price likely to go UP" if sentiment == "Positive" else "📉 Price likely to go DOWN"
-st.subheader("🔮 Prediction:")
-st.markdown(f"### {prediction}")
-
-# Download button
-st.download_button("Download CSV", df.to_csv().encode('utf-8'), "stock_data.csv", "text/csv")
+st.caption("⏱️ Auto-refreshes every 10 minutes.")
+time.sleep(600)
