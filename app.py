@@ -3,49 +3,51 @@ import pandas as pd
 from utils import get_stock_data, fetch_latest_news, analyze_sentiment
 import time
 
-st.set_page_config(page_title="Indian Stock Predictor", layout="wide")
-st.title("Indian Stock Trend Predictor (NSE)")
+st.set_page_config(page_title="📊 Indian Stock Predictor", layout="wide", page_icon="📈")
+st.title("📊 Indian Stock Trend Predictor (NSE/BSE)")
 
+# Stock list with NSE and BSE codes
 stock_list = {
-    "RELIANCE": "RELIANCE.NS",
-    "INFY": "INFY.NS",
-    "TCS": "TCS.NS",
-    "HDFCBANK": "HDFCBANK.NS",
-    "ICICIBANK": "ICICIBANK.NS"
+    "RELIANCE (NSE)": "RELIANCE.NS",
+    "RELIANCE (BSE)": "500325.BO",
+    "TCS (NSE)": "TCS.NS",
+    "TCS (BSE)": "532540.BO",
+    "INFY (NSE)": "INFY.NS",
+    "INFY (BSE)": "500209.BO",
+    "HDFCBANK (NSE)": "HDFCBANK.NS",
+    "HDFCBANK (BSE)": "500180.BO",
+    "ICICIBANK (NSE)": "ICICIBANK.NS",
+    "ICICIBANK (BSE)": "532174.BO"
 }
 
 stock = st.selectbox("Select a Stock", list(stock_list.keys()))
 symbol = stock_list[stock]
 
-with st.spinner("Fetching latest stock data..."):
-    data = get_stock_data(symbol)
-    st.write("Raw data preview:")
-    st.dataframe(data)
+# Auto-refresh every 10 minutes
+st_autorefresh = st.experimental_rerun
+refresh_interval = 600  # seconds
 
-if data is None or data.empty:
-    st.error("Unable to fetch stock data. Please try again later.")
-else:
-    st.subheader("Latest Stock Data")
-    st.line_chart(data['Close'])
+# Get stock data
+df = get_stock_data(symbol)
+st.subheader("📉 Raw data preview:")
+st.dataframe(df.tail(10))
 
-    st.subheader("Latest News Headlines")
-    news = fetch_latest_news()
-    if not news:
-        st.warning("No news available at the moment.")
-    else:
-        for item in news:
-            st.write("- " + item)
+# Chart
+st.line_chart(df['Close'])
 
-        st.subheader("News Sentiment")
-        sentiment = analyze_sentiment(news)
-        st.write(sentiment)
+# News & Sentiment
+st.subheader("📰 Latest News & Sentiment")
+news = fetch_latest_news(stock.split()[0])
+for n in news:
+    st.markdown(f"- {n}")
 
-        st.subheader("Predicted Direction")
-        if sentiment == "Positive":
-            st.success("UP")
-        else:
-            st.error("DOWN")
+sentiment = analyze_sentiment(news)
+st.markdown(f"**🧠 Sentiment Analysis**: `{sentiment}`")
 
-st.caption("Auto-refresh every 10 minutes enabled.")
-time.sleep(600)
-st.experimental_rerun()
+# Simple prediction based on sentiment
+prediction = "📈 Price likely to go UP" if sentiment == "Positive" else "📉 Price likely to go DOWN"
+st.subheader("🔮 Prediction:")
+st.markdown(f"### {prediction}")
+
+# Download button
+st.download_button("Download CSV", df.to_csv().encode('utf-8'), "stock_data.csv", "text/csv")
