@@ -1,43 +1,46 @@
 import streamlit as st
 import pandas as pd
-from utils import get_stock_data, fetch_latest_news, analyze_sentiment
-import time
+from utils import get_stock_data, fetch_latest_news, analyze_sentiment, predict_price
 
 st.set_page_config(page_title="📈 Indian Stock Predictor", layout="wide")
 st.title("📊 Indian Stock Trend Predictor (NSE + BSE)")
 
+# Load stock lists
+nse_df = pd.read_csv("nse_stocks.csv")
+bse_df = pd.read_csv("bse_stocks.csv")
+
 exchange = st.radio("Choose Exchange", ["NSE", "BSE"])
-stock_list = {
-    "RELIANCE": "RELIANCE.NS",
-    "INFY": "INFY.NS",
-    "TCS": "TCS.NS",
-    "HDFCBANK": "HDFCBANK.NS",
-    "ICICIBANK": "ICICIBANK.NS"
-}
+if exchange == "NSE":
+    options = {f"{row['SYMBOL']} - {row['NAME OF COMPANY']}": row['SYMBOL'] + ".NS" for _, row in nse_df.iterrows()}
+else:
+    options = {f"{row['Scrip Id']} - {row['Scrip Name']}": str(row['Scrip Id']) + ".BO" for _, row in bse_df.iterrows()}
 
-if exchange == "BSE":
-    stock_list = {k: v.replace(".NS", ".BO") for k, v in stock_list.items()}
+stock_display = st.selectbox("Select a Stock", list(options.keys()))
+symbol = options[stock_display]
 
-stock = st.selectbox("Select a Stock", list(stock_list.keys()))
-symbol = stock_list[stock]
-
-data_load_state = st.text("Fetching stock data...")
+st.info(f"Fetching data for: `{symbol}`")
 data = get_stock_data(symbol)
-data_load_state.text("")
+if data.empty:
+    st.error("No stock data found.")
+    st.stop()
 
-st.subheader("Raw data preview:")
+st.subheader("📉 Recent Prices")
 st.dataframe(data.tail(10))
 
-st.subheader("Sentiment Analysis (Last 5 News Headlines)")
-news = fetch_latest_news(stock)
+st.subheader("📈 Chart (Close + SMA + EMA)")
+plot_cols = [col for col in ['Close', 'SMA_20', 'EMA_10'] if col in data.columns]
+if plot_cols:
+    st.line_chart(data[plot_cols])
+
+st.subheader("🔮 Predicted Price for Tomorrow")
+prediction = predict_price(data)
+st.success(f"Predicted Closing Price: ₹{prediction:.2f}")
+
+st.subheader("📰 News & Sentiment")
+news = fetch_latest_news(stock_display.split('-')[0].strip())
 sentiment = analyze_sentiment(news)
-st.write(f"📰 News Sentiment: **{sentiment}**")
-st.write("Recent Headlines:")
-for n in news:
-    st.markdown(f"- {n}")
+st.markdown(f"**Sentiment**: `{sentiment}`")
+for line in news:
+    st.markdown(f"- {line}")
 
-st.subheader("📈 Stock Close Price with SMA and EMA")
-st.line_chart(data[['Close', 'SMA_20', 'EMA_10']])
-
-st.caption("⏱️ Auto-refreshes every 10 minutes.")
-time.sleep(600)
+st.caption("⏱️ App refreshes every 10 minutes.")
