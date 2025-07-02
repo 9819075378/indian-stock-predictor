@@ -1,6 +1,6 @@
 streamlit
-pandas
 yfinance
+pandas
 textblob
-requests
 beautifulsoup4
+requests
