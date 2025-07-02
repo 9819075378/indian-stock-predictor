@@ -4,7 +4,6 @@ from utils import get_stock_data, fetch_latest_news, analyze_sentiment
 import time
 
 st.set_page_config(page_title="Indian Stock Predictor", layout="wide")
-
 st.title("Indian Stock Trend Predictor (NSE)")
 
 stock_list = {
@@ -20,6 +19,8 @@ symbol = stock_list[stock]
 
 with st.spinner("Fetching latest stock data..."):
     data = get_stock_data(symbol)
+    st.write("Raw data preview:")
+    st.dataframe(data)
 
 if data is None or data.empty:
     st.error("Unable to fetch stock data. Please try again later.")
