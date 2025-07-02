@@ -1,46 +1,40 @@
 import streamlit as st
+from utils import get_stock_data, predict_price, get_sentiment
 import pandas as pd
-from utils import get_stock_data, fetch_latest_news, analyze_sentiment, predict_price
 
-st.set_page_config(page_title="📈 Indian Stock Predictor", layout="wide")
-st.title("📊 Indian Stock Trend Predictor (NSE + BSE)")
+st.set_page_config(page_title="Indian Stock Predictor (NSE Only)", layout="wide")
 
-# Load stock lists
-nse_df = pd.read_csv("nse_stocks.csv")
-bse_df = pd.read_csv("bse_stocks.csv")
+st.title("📈 Indian Stock Predictor (NSE Only)")
 
-exchange = st.radio("Choose Exchange", ["NSE", "BSE"])
-if exchange == "NSE":
-    options = {f"{row['SYMBOL']} - {row['NAME OF COMPANY']}": row['SYMBOL'] + ".NS" for _, row in nse_df.iterrows()}
-else:
-    options = {f"{row['Scrip Id']} - {row['Scrip Name']}": str(row['Scrip Id']) + ".BO" for _, row in bse_df.iterrows()}
+# Load stock list
+nse_stocks = pd.read_csv("nse_stocks.csv")
+stock_options = nse_stocks["Symbol"].dropna().sort_values().tolist()
 
-stock_display = st.selectbox("Select a Stock", list(options.keys()))
-symbol = options[stock_display]
+selected_symbol = st.selectbox("Select NSE Stock", stock_options)
+full_symbol = f"{selected_symbol}.NS"
 
-st.info(f"Fetching data for: `{symbol}`")
-data = get_stock_data(symbol)
-if data.empty:
-    st.error("No stock data found.")
-    st.stop()
+if st.button("🔍 Analyze"):
+    with st.spinner("Fetching data and generating prediction..."):
+        df = get_stock_data(full_symbol)
 
-st.subheader("📉 Recent Prices")
-st.dataframe(data.tail(10))
+        if df is None or df.empty or "Close" not in df.columns:
+            st.error("❌ Could not retrieve stock data. Please try a different symbol.")
+        else:
+            st.success("✅ Data fetched successfully!")
 
-st.subheader("📈 Chart (Close + SMA + EMA)")
-plot_cols = [col for col in ['Close', 'SMA_20', 'EMA_10'] if col in data.columns]
-if plot_cols:
-    st.line_chart(data[plot_cols])
+            if all(col in df.columns for col in ["Close", "SMA_20", "EMA_10"]):
+                st.subheader("📊 Price Trend with SMA/EMA")
+                st.line_chart(df[["Close", "SMA_20", "EMA_10"]])
+            else:
+                st.warning("⚠️ Not enough data to plot SMA/EMA.")
 
-st.subheader("🔮 Predicted Price for Tomorrow")
-prediction = predict_price(data)
-st.success(f"Predicted Closing Price: ₹{prediction:.2f}")
+            st.subheader("🧠 News Sentiment")
+            sentiment = get_sentiment(selected_symbol)
+            st.write(f"Sentiment: **{sentiment}**")
 
-st.subheader("📰 News & Sentiment")
-news = fetch_latest_news(stock_display.split('-')[0].strip())
-sentiment = analyze_sentiment(news)
-st.markdown(f"**Sentiment**: `{sentiment}`")
-for line in news:
-    st.markdown(f"- {line}")
-
-st.caption("⏱️ App refreshes every 10 minutes.")
+            st.subheader("📉 Tomorrow's Price Prediction")
+            predicted_price = predict_price(df)
+            if predicted_price:
+                st.metric(label="Predicted Closing Price", value=f"₹{predicted_price:.2f}")
+            else:
+                st.error("⚠️ Unable to generate prediction due to insufficient data.")
