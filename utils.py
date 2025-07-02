@@ -5,7 +5,8 @@ from textblob import TextBlob
 
 def get_stock_data(symbol):
     try:
-        data = yf.download(tickers=symbol, period='1d', interval='5m')
+        # Fetch 5 days of data to avoid NSE off-hour limitations
+        data = yf.download(tickers=symbol, period='5d', interval='5m')
         return data
     except Exception as e:
         print(f"Error fetching stock data: {e}")
