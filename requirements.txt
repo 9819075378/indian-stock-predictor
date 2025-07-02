@@ -1,6 +1,7 @@
 streamlit
-yfinance
 pandas
+yfinance
 textblob
-beautifulsoup4
 requests
+beautifulsoup4
+scikit-learn
