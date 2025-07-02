@@ -1,23 +1,21 @@
-# Indian Stock Trend Predictor (NSE/BSE)
+# Indian Stock Predictor App (NSE + BSE)
 
-A Streamlit web app to predict Indian stock price direction using:
-- ✅ Live stock data (NSE & BSE)
-- 📰 News headlines
-- 🧠 Sentiment analysis
-- ⏱️ Auto refresh every 10 mins
-- 📉 Visualization & CSV export
+A Streamlit app that:
+- Predicts stock price trends using SMA & EMA
+- Performs sentiment analysis on latest news
+- Supports NSE & BSE stock exchanges
+- Auto-refreshes every 10 minutes
 
-## To Run Locally
+## Run locally
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## How Prediction Works
+## Features
+- News scraped from Moneycontrol and Economic Times
+- 5-minute interval data via yfinance
+- Plots with moving averages (SMA 20, EMA 10)
 
-- App pulls current stock data using `yfinance`
-- Fetches news articles using `Google News` search
-- Analyzes sentiment via `TextBlob`
-- Predicts UP 📈 or DOWN 📉 movement accordingly
-
+Enjoy trading smarter!
