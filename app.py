@@ -18,7 +18,12 @@ if st.button("Analyze"):
     if df is not None and not df.empty:
         pred = predict_price(df)
         sentiment = get_sentiment()
-        st.subheader(f"📊 Predicted Close Price (Next Day): ₹{pred:.2f}")
+        # Ensure pred is a scalar for formatting
+        try:
+            pred_value = float(pred[0])
+        except (TypeError, IndexError):
+            pred_value = float(pred)
+        st.subheader(f"📊 Predicted Close Price (Next Day): ₹{pred_value:.2f}")
         st.markdown(f"🗞️ **Market Sentiment:** {sentiment}")
     else:
         st.error("Failed to retrieve data. Please check the symbol or try again later.")
