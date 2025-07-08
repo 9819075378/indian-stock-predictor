@@ -1,46 +1,37 @@
 import yfinance as yf
 import pandas as pd
+import plotly.graph_objects as go
 from textblob import TextBlob
-from sklearn.linear_model import LinearRegression
-from bs4 import BeautifulSoup
 import requests
+from bs4 import BeautifulSoup
+from sklearn.linear_model import LinearRegression
 import numpy as np
 
-def get_stock_data(symbol):
-    try:
-        df = yf.download(symbol, period="3mo", interval="1d", progress=False)
-        if df.empty:
-            return None
-        df["SMA_20"] = df["Close"].rolling(window=20).mean()
-        df["EMA_10"] = df["Close"].ewm(span=10, adjust=False).mean()
-        return df
-    except Exception:
-        return None
+def get_stock_data(symbol="RELIANCE.NS"):
+    df = yf.download(symbol, period="6mo", interval="1d")
+    df['SMA_20'] = df['Close'].rolling(window=20).mean()
+    df['EMA_10'] = df['Close'].ewm(span=10, adjust=False).mean()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name="Close"))
+    fig.add_trace(go.Scatter(x=df.index, y=df['SMA_20'], name="SMA 20"))
+    fig.add_trace(go.Scatter(x=df.index, y=df['EMA_10'], name="EMA 10"))
+    return df, fig
 
 def predict_price(df):
-    try:
-        df = df.dropna()
-        if len(df) < 2:
-            return None
-        df["Day"] = range(len(df))
-        X = df[["Day"]]
-        y = df["Close"]
-        model = LinearRegression().fit(X, y)
-        next_day = [[len(df)]]
-        return model.predict(next_day)[0]
-    except:
-        return None
+    df = df.dropna()
+    X = np.arange(len(df)).reshape(-1,1)
+    y = df['Close'].values
+    model = LinearRegression()
+    model.fit(X, y)
+    return model.predict([[len(df)+1]])[0]
 
-def get_sentiment(stock_name):
+def get_sentiment():
     try:
-        url = f"https://www.moneycontrol.com/news/tags/{stock_name.lower()}.html"
-        res = requests.get(url, timeout=5)
-        soup = BeautifulSoup(res.text, "html.parser")
-        headlines = [tag.text for tag in soup.find_all("h2")][:5]
-        if not headlines:
-            return "No news found"
-        text = " ".join(headlines)
-        blob = TextBlob(text)
+        url = "https://www.moneycontrol.com/news/business/markets/"
+        page = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        soup = BeautifulSoup(page.content, "html.parser")
+        headlines = [a.text for a in soup.select("h2")[:5]]
+        blob = TextBlob(" ".join(headlines))
         polarity = blob.sentiment.polarity
         if polarity > 0.1:
             return "Positive"
@@ -49,4 +40,4 @@ def get_sentiment(stock_name):
         else:
             return "Neutral"
     except:
-        return "Sentiment unavailable"
+        return "Unavailable"
