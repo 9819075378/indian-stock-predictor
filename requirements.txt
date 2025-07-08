@@ -1,7 +1,8 @@
 streamlit
-pandas
 yfinance
-textblob
-requests
-beautifulsoup4
+pandas
+plotly
 scikit-learn
+textblob
+beautifulsoup4
+requests
